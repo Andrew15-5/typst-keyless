@@ -86,7 +86,7 @@ The first release supports PNG, JPEG, GIF, and WebP input and always emits PNG o
 
 ## Compatibility
 
-Keyless requires Typst 0.8.0 or newer. This is the first Typst release with WASM plugin support.
+Keyless requires Typst 0.8.0 or newer. This is the first Typst release with Wasm plugin support.
 
 ## Building
 
