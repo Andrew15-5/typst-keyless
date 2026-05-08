@@ -106,11 +106,19 @@ nix run .#test-matrix
 
 This builds the same checks and prints one line per compiler plus an `x/y passed` summary.
 
-To manually inspect the compiled results for every compiler version, build the artifact bundle:
+To quickly inspect the compiled results for the latest compiler version, build the latest artifact bundle:
 
 ```sh
-nix build .#artifacts
+nix build .#artifacts-latest
 ```
+
+To manually inspect the compiled results for every compiler version, build the full artifact bundle:
+
+```sh
+nix build .#artifacts --max-jobs auto
+```
+
+The full bundle builds one derivation per compiler version. `--max-jobs auto` lets Nix build independent versions in parallel; without it, your Nix configuration may build them one at a time.
 
 The `result` symlink contains one directory per Typst version:
 

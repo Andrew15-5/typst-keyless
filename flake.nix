@@ -82,12 +82,18 @@
             cp -R ${self.checks.${system}.${check}}/* "$out/typst-$version/"
             printf 'Typst %s: compat.pdf, visual-kun.pdf, visual-chan.pdf, keyed.png, keyed.json\n' "$version" >> "$out/report.txt"
           '';
+          latestCheck = "0_14_2";
         in
         {
           artifacts = pkgs.runCommand "keyless-typst-artifacts" { } ''
             mkdir $out
             printf 'Keyless Typst compatibility artifacts\n\n' > "$out/report.txt"
             ${nixpkgs.lib.concatMapStringsSep "\n" copyArtifact checkNames}
+          '';
+          artifacts-latest = pkgs.runCommand "keyless-typst-latest-artifacts" { } ''
+            mkdir $out
+            printf 'Keyless Typst latest compatibility artifacts\n\n' > "$out/report.txt"
+            ${copyArtifact latestCheck}
           '';
           default = self.packages.${system}.artifacts;
         });
