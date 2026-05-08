@@ -95,3 +95,44 @@ rustup target add wasm32-unknown-unknown
 cargo build --release --target wasm32-unknown-unknown
 cp target/wasm32-unknown-unknown/release/keyless_plugin.wasm src/plugin.wasm
 ```
+
+## Testing
+
+Run the full compiler compatibility matrix with Nix:
+
+```sh
+nix flake check
+```
+
+This is the command to use in CI. Nix only prints builds it actually runs, so a cached successful run can end with `running 0 flake checks`.
+
+For a human-readable pass/fail report, run:
+
+```sh
+nix run .#test-matrix
+```
+
+This builds the same checks and prints one line per compiler plus an `x/y passed` summary.
+
+The matrix compiles the rendering regression test with every Typst release from 0.8.0 through 0.14.2. Older releases are not included because 0.8.0 introduced WASM plugin support.
+
+To test one compiler version while iterating, build its check directly:
+
+```sh
+nix build .#checks.x86_64-linux.0_12_0
+```
+
+Replace `0_12_0` with any check name shown by:
+
+```sh
+nix flake show
+```
+
+The compatibility test lives in `tests/compat.typ`. It imports the local package, verifies that `key-out-bytes` returns PNG bytes, and renders `key-out` so the bytes-to-image path is tested on each compiler version.
+
+You can also run the test with your local Typst compiler after generating the fixture image:
+
+```sh
+base64 -d tests/fixtures/white-black.png.b64 > tests/fixtures/white-black.png
+typst compile --root . tests/compat.typ /tmp/keyless-compat.pdf
+```
