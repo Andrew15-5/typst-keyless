@@ -34,7 +34,7 @@
   format: auto,
   ..args,
 ) = {
-  image(
+  image.decode(
     key-out-bytes(
       source,
       color: color,
@@ -44,6 +44,7 @@
       premultiply: premultiply,
       format: format,
     ),
+    format: "png",
     ..args,
   )
 }
