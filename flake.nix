@@ -45,15 +45,52 @@
           };
 
           compatTest = name: typst:
-            pkgs.runCommand "keyless-typst-${name}-compat" { nativeBuildInputs = [ pkgs.coreutils typst ]; } ''
+            pkgs.runCommand "keyless-typst-${name}-compat" { nativeBuildInputs = [ pkgs.coreutils pkgs.python3 typst ]; } ''
               cp -R ${self} source
               chmod -R u+w source
               base64 -d source/tests/fixtures/white-black.png.b64 > source/tests/fixtures/white-black.png
-              typst compile --root source source/tests/compat.typ output.pdf
-              cp output.pdf $out
+              typst query --root source source/tests/compat.typ '<keyed-png>' --one --field value --format json > keyed.json
+              python3 source/tests/analyze-keyed-png.py keyed.json keyed.png
+              typst compile --root source source/tests/compat.typ compat.pdf
+              typst compile --root source source/tests/visual-kun.typ visual-kun.pdf
+              typst compile --root source source/tests/visual-chan.typ visual-chan.pdf
+              mkdir $out
+              cp compat.pdf keyed.json keyed.png visual-kun.pdf visual-chan.pdf $out/
             '';
         in
         builtins.mapAttrs compatTest versions);
+
+      packages = forAllSystems (system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          checkNames = [
+            "0_8_0"
+            "0_9_0"
+            "0_10_0"
+            "0_11_0"
+            "0_11_1"
+            "0_12_0"
+            "0_13_0"
+            "0_13_1"
+            "0_14_0"
+            "0_14_1"
+            "0_14_2"
+          ];
+          copyArtifact = check: ''
+            version=${nixpkgs.lib.replaceStrings [ "_" ] [ "." ] check}
+            mkdir -p "$out/typst-$version"
+            cp -R ${self.checks.${system}.${check}}/* "$out/typst-$version/"
+            printf 'Typst %s: compat.pdf, visual-kun.pdf, visual-chan.pdf, keyed.png, keyed.json\n' "$version" >> "$out/report.txt"
+          '';
+        in
+        {
+          artifacts = pkgs.runCommand "keyless-typst-artifacts" { } ''
+            mkdir $out
+            printf 'Keyless Typst compatibility artifacts\n\n' > "$out/report.txt"
+            ${nixpkgs.lib.concatMapStringsSep "\n" copyArtifact checkNames}
+          '';
+          default = self.packages.${system}.artifacts;
+        });
 
       apps = forAllSystems (system:
         let

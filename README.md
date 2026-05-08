@@ -101,20 +101,37 @@ cp target/wasm32-unknown-unknown/release/keyless_plugin.wasm src/plugin.wasm
 Run the full compiler compatibility matrix with Nix:
 
 ```sh
-nix flake check
-```
-
-This is the command to use in CI. Nix only prints builds it actually runs, so a cached successful run can end with `running 0 flake checks`.
-
-For a human-readable pass/fail report, run:
-
-```sh
 nix run .#test-matrix
 ```
 
 This builds the same checks and prints one line per compiler plus an `x/y passed` summary.
 
+To manually inspect the compiled results for every compiler version, build the artifact bundle:
+
+```sh
+nix build .#artifacts
+```
+
+The `result` symlink contains one directory per Typst version:
+
+```text
+result/
+  typst-0.8.0/
+    compat.pdf
+    visual-kun.pdf
+    visual-chan.pdf
+    keyed.png
+    keyed.json
+  typst-0.9.0/
+    ...
+  report.txt
+```
+
+Open each `visual-kun.pdf` and `visual-chan.pdf` to compare the real-world `typst-kun.png` and `typst-chan.png` examples. Each visual check shows the source image beside its keyed result on a high-contrast checkerboard so remaining background, halos, and accidentally removed foreground details are easier to spot. Open each `keyed.png` to inspect the tiny deterministic pixel fixture used by the analyzer.
+
 The matrix compiles the rendering regression test with every Typst release from 0.8.0 through 0.14.2. Older releases are not included because 0.8.0 introduced WASM plugin support.
+
+Each matrix check also queries the PNG bytes produced by `key-out-bytes` and analyzes the decoded pixels. The fixture contains one white pixel and one black pixel; the analyzer verifies that the white pixel becomes transparent RGBA `[255, 255, 255, 0]` and the black pixel stays opaque RGBA `[0, 0, 0, 255]`.
 
 To test one compiler version while iterating, build its check directly:
 
@@ -128,7 +145,7 @@ Replace `0_12_0` with any check name shown by:
 nix flake show
 ```
 
-The compatibility test lives in `tests/compat.typ`. It imports the local package, verifies that `key-out-bytes` returns PNG bytes, and renders `key-out` so the bytes-to-image path is tested on each compiler version.
+The compatibility test lives in `tests/compat.typ`. It imports the local package, verifies that `key-out-bytes` returns PNG bytes, exposes those bytes as queryable metadata for pixel analysis, and renders `key-out` so the bytes-to-image path is tested on each compiler version. The visual examples live in `tests/visual-kun.typ` and `tests/visual-chan.typ`, with image fixtures in `tests/fixtures/`, and the pixel analyzer lives in `tests/analyze-keyed-png.py`.
 
 You can also run the test with your local Typst compiler after generating the fixture image:
 
