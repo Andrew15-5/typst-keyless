@@ -10,9 +10,16 @@
 #let key-color = rgb("#b107be")
 #let key-tolerance = 15%
 #let key-softness = 1%
+#let image-from-bytes(data, ..args) = {
+  if sys.version >= version(0, 13, 0) {
+    image(data, ..args)
+  } else {
+    image.decode(data, format: "png", ..args)
+  }
+}
 
 #let checker-preview(body) = box(width: preview-width, height: preview-height)[
-  #place(top + left, image.decode(checker, format: "png", width: preview-width, height: preview-height, fit: "stretch"))
+  #place(top + left, image-from-bytes(checker, width: preview-width, height: preview-height, fit: "stretch"))
   #place(top + left, body)
 ]
 
@@ -31,7 +38,7 @@
     [
       #text(weight: "bold")[Source]
       #v(3mm)
-      #image.decode(source, format: "png", height: preview-height)
+      #image-from-bytes(source, height: preview-height)
     ],
     [
       #text(weight: "bold")[Keyed on checkerboard]
