@@ -44,10 +44,62 @@
             "0_14_2" = typstRelease "0.14.2" "sha256-pgRMutKpVN65IRZ+JX4SCsChayAznsARIRlP+dOUmW0=";
           };
 
+          legacyDecodeChecks = [ "0_8_0" "0_9_0" "0_10_0" "0_11_0" "0_11_1" "0_12_0" ];
+
           compatTest = name: typst:
             pkgs.runCommand "keyless-typst-${name}-compat" { nativeBuildInputs = [ pkgs.coreutils pkgs.python3 typst ]; } ''
               cp -R ${self} source
               chmod -R u+w source
+              ${nixpkgs.lib.optionalString (builtins.elem name legacyDecodeChecks) ''
+                python3 - <<'PY'
+from pathlib import Path
+
+replacements = {
+    Path("source/src/lib.typ"): (
+        """#let _image-from-bytes(data, ..args) = {
+  if sys.version >= version(0, 13, 0) {
+    image(data, ..args)
+  } else {
+    image.decode(data, format: "png", ..args)
+  }
+}""",
+        """#let _image-from-bytes(data, ..args) = {
+  image.decode(data, format: "png", ..args)
+}""",
+    ),
+    Path("source/tests/visual-kun.typ"): (
+        """#let image-from-bytes(data, ..args) = {
+  if sys.version >= version(0, 13, 0) {
+    image(data, ..args)
+  } else {
+    image.decode(data, format: "png", ..args)
+  }
+}""",
+        """#let image-from-bytes(data, ..args) = {
+  image.decode(data, format: "png", ..args)
+}""",
+    ),
+    Path("source/tests/visual-chan.typ"): (
+        """#let image-from-bytes(data, ..args) = {
+  if sys.version >= version(0, 13, 0) {
+    image(data, ..args)
+  } else {
+    image.decode(data, format: "png", ..args)
+  }
+}""",
+        """#let image-from-bytes(data, ..args) = {
+  image.decode(data, format: "png", ..args)
+}""",
+    ),
+}
+
+for path, (old, new) in replacements.items():
+    text = path.read_text()
+    if old not in text:
+        raise SystemExit(f"expected helper block not found in {path}")
+    path.write_text(text.replace(old, new))
+PY
+              ''}
               base64 -d source/tests/fixtures/white-black.png.b64 > source/tests/fixtures/white-black.png
               typst query --root source source/tests/compat.typ '<keyed-png>' --one --field value --format json > keyed.json
               python3 source/tests/analyze-keyed-png.py keyed.json keyed.png
