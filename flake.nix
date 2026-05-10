@@ -55,15 +55,15 @@
 from pathlib import Path
 
 replacements = {
-    Path("source/src/lib.typ"): (
-        """#let _image-from-bytes(data, ..args) = {
+    Path("source/src/internal.typ"): (
+        """#let image-from-bytes(data, ..args) = {
   if sys.version >= version(0, 13, 0) {
     image(data, ..args)
   } else {
     image.decode(data, format: "png", ..args)
   }
 }""",
-        """#let _image-from-bytes(data, ..args) = {
+        """#let image-from-bytes(data, ..args) = {
   image.decode(data, format: "png", ..args)
 }""",
     ),
